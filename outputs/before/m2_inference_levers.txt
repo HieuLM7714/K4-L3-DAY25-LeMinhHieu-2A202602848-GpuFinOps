@@ -1,0 +1,6 @@
+== M2 Inference Cost Levers ==
+requests=2400  tokens=7,533,027
+baseline  : $48.87/day   $6.488/1M-token
+optimized : $8.48/day   $1.126/1M-token
+savings   : 82.6%  (cascade + caching + batch)
+discount stack (batch + 100% cache): 0.050 of naive

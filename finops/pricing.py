@@ -52,6 +52,32 @@ def discount_stack(
     return cache_mult * batch_mult
 
 
+def cache_write_cost_per_m(
+    price_in_per_m: float,
+    write_premium: float = 0.25,          # ASSUMPTION: Anthropic 5-min cache write ~1.25x input
+    storage_per_m_hr: float = 1.00,       # ASSUMPTION: Gemini-style storage ~$1/1M-tok/hr
+    ttl_hours: float = 5 / 60,
+) -> float:
+    """Extra USD per 1M cached tokens to create + hold one cache entry for its TTL."""
+    return price_in_per_m * write_premium + storage_per_m_hr * ttl_hours
+
+
+def break_even_cache_reads(write_cost_per_m: float, price_in_per_m: float,
+                           read_discount: float = 0.10) -> float:
+    """Reads per cached prefix needed before the write cost is paid back.
+
+    Each read saves (1 - read_discount) x input price on the cached tokens.
+    """
+    saving_per_read = price_in_per_m * (1.0 - read_discount)
+    return write_cost_per_m / saving_per_read if saving_per_read > 0 else float("inf")
+
+
+def cache_is_worth_it(avg_cache_reads: float, write_cost_per_m: float,
+                      price_in_per_m: float, read_discount: float = 0.10) -> bool:
+    """Cache only saves money when read savings exceed the cost of writing it."""
+    return avg_cache_reads >= break_even_cache_reads(write_cost_per_m, price_in_per_m, read_discount)
+
+
 def break_even_utilization(discount_frac: float) -> float:
     """Utilization at which a commitment pays off ~= 1 - discount.
 
